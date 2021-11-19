@@ -8,7 +8,7 @@ def display_image_and_collect_input(list_id):
     """ This function show the CAPTCHA images and take the user inputs"""
     list_input_answer = []
     for img_id in list_id:
-        img = mpimg.imread("./kaggle_dataset/" + str(img_id)+'.png')
+        img = mpimg.imread("./CAPTCHA_dataset/" + str(img_id)+'.png')
         imgplot = plt.imshow(img)
         plt.draw()
         plt.pause(0.001)
