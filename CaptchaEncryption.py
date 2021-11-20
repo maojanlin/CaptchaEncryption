@@ -10,7 +10,7 @@ global data_size
 data_size = 1040
 
 def display_image_and_collect_input(list_id):
-    """ This function show the CAPTCHA images and take the user inputs"""
+    """ This function shows the CAPTCHA images and take the user inputs"""
     list_input_answer = []
     for img_id in list_id:
         print("./CAPTCHA_dataset/" + str(img_id)+'.png')
@@ -23,7 +23,7 @@ def display_image_and_collect_input(list_id):
     return list_input_answer
 
 def hash_and_salt(user_key):
-    """ salt should be fix in encryption and decryption """
+    """ salt should be fixed in encryption and decryption """
     random.seed(776256)
     salt = ""
     for i in range(128):
@@ -55,7 +55,7 @@ def round_puzzle_num(num_puzzle):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-e', '--encryption', action='store_true', help='specify when enctypt document')
+    parser.add_argument('-e', '--encryption', action='store_true', help='specify when encrypt document')
     parser.add_argument('-d', '--decryption', action='store_true', help='specify when decrypt document')
     parser.add_argument('--inkblot', action='store_true', help='include one inkblot in the puzzle set')
     parser.add_argument('-n', '--puzzle', type=int, default=4, help='number of puzzles used in encryption and decryption, can only be 1, 2, 4, or 8')
