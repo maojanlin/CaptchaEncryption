@@ -6,7 +6,10 @@ import string
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+import base64
 from Crypto.Util.Padding import pad
+from Crypto.Cipher import AES
+from Crypto import Random
 
 global data_size
 data_size = 1040
@@ -63,6 +66,31 @@ def round_puzzle_num(num_puzzle):
     return min_idx
 
 
+class AESCipher(object):   # AES code by mnothic from stackoverflow
+    def __init__(self, key): 
+        self.bs = AES.block_size
+        self.key = hashlib.sha256(key).digest()
+    def encrypt(self, raw):
+        raw = self._pad(raw)
+        iv = Random.new().read(AES.block_size)
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + cipher.encrypt(raw.encode()))
+    def decrypt(self, enc):
+        enc = base64.b64decode(enc)
+        iv = enc[:AES.block_size]
+        cipher = AES.new(self.key, AES.MODE_CBC, iv)
+        return self._unpad(cipher.decrypt(enc[AES.block_size:])).decode('utf-8')
+    def _pad(self, s):
+        return s + (self.bs - len(s) % self.bs) * chr(self.bs - len(s) % self.bs)
+    @staticmethod
+    def _unpad(s):
+        return s[:-ord(s[len(s)-1:])]
+
+
+
+
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-e', '--encryption', action='store_true', help='specify when encrypt document')
@@ -96,24 +124,60 @@ if __name__ == "__main__":
     hash_key = hash_and_salt(user_key.encode(), salt_1)
     print("hash_key", hash_key)
     print("hash_key", type(hash_key), len(hash_key))
-
+    
+    
+    # generate CAPTCHA indexes from the hash_key
     list_big_idx = []
     len_portion = int(32/num_puzzle)
     for idx in range(num_puzzle):
         key_portion = hash_key[idx*len_portion:(idx+1)*len_portion]
         big_portion = int.from_bytes(key_portion, "big")
         list_big_idx.append(big_portion % data_size)
-     
     
+
+    # perform CAPTCHA association
     print(list_big_idx)
     list_input_answer = display_image_and_collect_input(list_big_idx)
     print(list_input_answer)
 
+
+    # mix user_key with CAPTCHA associations
     mix_key = hash_key
     print("mix_key", mix_key.hex())
     for associate in list_input_answer:
         hash_associate = hash_and_salt(associate.encode(), salt_2)
         mix_key = bytes(a ^ b for (a, b) in zip(mix_key, hash_associate))
 
+
+    # generate final key
     final_key = hash_and_salt(mix_key, salt_3)
     print('final_key', final_key.hex())
+    
+
+    # perform AES encryption / decryption
+    if flag_encrypt == True:    # encryption process
+        fi = open(fn_input, 'r')
+        raw_data = ""
+        for ele in fi:
+            raw_data += ele
+        fi.close()
+        
+        # perform AES encryption
+        cipher = AESCipher(final_key)
+        encrypted_text = cipher.encrypt(raw_data)
+    
+        fo = open(fn_output, 'wb')
+        fo.write(encrypted_text)
+        fo.close()
+    elif flag_decrypt == True:  # decrypt process
+        with open(fn_input, 'rb') as encrypted_file:
+            read_data = encrypted_file.read()
+
+        # perform AES decryption
+        cipher = AESCipher(final_key)
+        decrypted_text = cipher.decrypt(read_data)
+        print(decrypted_text)
+    else:
+        print("ERROR!, option for encryption/decryption has problems!")
+
+
