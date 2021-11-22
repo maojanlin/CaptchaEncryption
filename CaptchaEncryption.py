@@ -6,8 +6,18 @@ import string
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 
+from Crypto.Util.Padding import pad
+
 global data_size
 data_size = 1040
+
+def generate_salt(seed_num):
+    random.seed(seed_num)
+    salt = ""
+    for i in range(128):
+        salt += random.choice(string.ascii_letters)
+    return salt
+
 
 def display_image_and_collect_input(list_id):
     """ This function shows the CAPTCHA images and take the user inputs"""
@@ -22,15 +32,15 @@ def display_image_and_collect_input(list_id):
         list_input_answer.append(text)
     return list_input_answer
 
-def hash_and_salt(user_key):
+
+def hash_and_salt(user_key_encode, salt):
     """ salt should be fixed in encryption and decryption """
-    random.seed(776256)
-    salt = ""
-    for i in range(128):
-        salt += random.choice(string.ascii_letters)
-    m = hashlib.sha256(user_key.encode())
-    m.update(salt.encode())
-    return m.digest() #.hexdigest()
+    dk = hashlib.pbkdf2_hmac('sha256', user_key_encode, salt.encode(), 131072)
+    #m = hashlib.sha256(user_key.encode())
+    #m.update(salt.encode())
+    #return m.digest() #.hexdigest()
+    return dk #.hexdigest()
+
 
 def round_puzzle_num(num_puzzle):
     """ round the num_puzzle to 1, 2, 4, or 8 """
@@ -76,8 +86,14 @@ if __name__ == "__main__":
     fn_input  = args.input
     fn_output = args.output
     
+    # generate_salt
+    salt_1 = generate_salt(484872067538)
+    salt_2 = generate_salt(2375892735927835)
+    salt_3 = generate_salt(56279381409)
+
+
     # hash user key
-    hash_key = hash_and_salt(user_key)
+    hash_key = hash_and_salt(user_key.encode(), salt_1)
     print("hash_key", hash_key)
     print("hash_key", type(hash_key), len(hash_key))
 
@@ -87,7 +103,17 @@ if __name__ == "__main__":
         key_portion = hash_key[idx*len_portion:(idx+1)*len_portion]
         big_portion = int.from_bytes(key_portion, "big")
         list_big_idx.append(big_portion % data_size)
+     
     
     print(list_big_idx)
     list_input_answer = display_image_and_collect_input(list_big_idx)
     print(list_input_answer)
+
+    mix_key = hash_key
+    print("mix_key", mix_key.hex())
+    for associate in list_input_answer:
+        hash_associate = hash_and_salt(associate.encode(), salt_2)
+        mix_key = bytes(a ^ b for (a, b) in zip(mix_key, hash_associate))
+
+    final_key = hash_and_salt(mix_key, salt_3)
+    print('final_key', final_key.hex())
