@@ -5,6 +5,7 @@ import string
 
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
+from unidecode import unidecode
 
 import base64
 from Crypto.Util.Padding import pad
@@ -13,6 +14,7 @@ from Crypto import Random
 
 global data_size
 data_size = 1040
+
 
 def generate_salt(seed_num):
     random.seed(seed_num)
@@ -156,16 +158,16 @@ if __name__ == "__main__":
 
     # perform AES encryption / decryption
     if flag_encrypt == True:    # encryption process
-        fi = open(fn_input, 'r')
-        raw_data = ""
-        for ele in fi:
-            raw_data += ele
-        fi.close()
-        
+        with open(fn_input, 'r') as raw_file:
+            raw_data = raw_file.read()
+        # fix the special character errors
+        raw_data = unidecode(raw_data)
+
         # perform AES encryption
         cipher = AESCipher(final_key)
+        print("LENGTH", len(raw_data.encode()))
         encrypted_text = cipher.encrypt(raw_data)
-    
+
         fo = open(fn_output, 'wb')
         fo.write(encrypted_text)
         fo.close()
@@ -176,7 +178,10 @@ if __name__ == "__main__":
         # perform AES decryption
         cipher = AESCipher(final_key)
         decrypted_text = cipher.decrypt(read_data)
-        print(decrypted_text)
+        
+        fo = open(fn_output, 'w')
+        fo.write(decrypted_text)
+        fo.close()
     else:
         print("ERROR!, option for encryption/decryption has problems!")
 
