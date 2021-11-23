@@ -12,8 +12,10 @@ from Crypto.Util.Padding import pad
 from Crypto.Cipher import AES
 from Crypto import Random
 
-global data_size
-data_size = 1040
+global data_size_C, data_size_A
+data_size_C = 1040
+data_size_A = 8683
+
 
 
 def generate_salt(seed_num):
@@ -30,6 +32,19 @@ def display_image_and_collect_input(list_id):
     for img_id in list_id:
         print("./CAPTCHA_dataset/" + str(img_id)+'.png')
         img = mpimg.imread("./CAPTCHA_dataset/" + str(img_id)+'.png')
+        imgplot = plt.imshow(img)
+        plt.draw()
+        plt.pause(0.001)
+        text = input("Please give your associated text: ")
+        list_input_answer.append(text)
+    return list_input_answer
+
+
+def display_inkblot(list_id):
+    list_input_answer = []
+    for img_id in list_id:
+        print("./ART_dataset/" + str(img_id)+'.jpg')
+        img = mpimg.imread("./ART_dataset/" + str(img_id)+'.jpg')
         imgplot = plt.imshow(img)
         plt.draw()
         plt.pause(0.001)
@@ -129,17 +144,30 @@ if __name__ == "__main__":
     
     
     # generate CAPTCHA indexes from the hash_key
-    list_big_idx = []
+    list_big = []
     len_portion = int(32/num_puzzle)
+    
+    key_portion = hash_key[:len_portion]
+    big_portion = int.from_bytes(key_portion, "big")
+    inkblot_idx = [big_portion % data_size_A]
     for idx in range(num_puzzle):
         key_portion = hash_key[idx*len_portion:(idx+1)*len_portion]
         big_portion = int.from_bytes(key_portion, "big")
-        list_big_idx.append(big_portion % data_size)
-    
+        list_big.append(big_portion)
 
     # perform CAPTCHA association
-    print(list_big_idx)
-    list_input_answer = display_image_and_collect_input(list_big_idx)
+    #list_inkblot_answer = display_inkblot(inkblot_idx)
+    #list_input_answer = display_image_and_collect_input(list_big_idx)
+    #list_input_answer = list_inkblot_answer + list_input_answer
+    if flag_inkplot:
+        inkblot_idx = [list_big[0] % data_size_A]
+        list_big_idx = [ele % data_size_C for ele in list_big[1:]]
+        list_inkblot_answer = display_inkblot(inkblot_idx)
+        list_input_answer = display_image_and_collect_input(list_big_idx)
+        list_input_answer = list_inkblot_answer + list_input_answer
+    else:
+        list_big_idx = [ele % data_size_C for ele in list_big]
+        list_input_answer = display_image_and_collect_input(list_big_idx)
     print(list_input_answer)
 
 
